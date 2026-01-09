@@ -1,0 +1,7 @@
+timestamp_header = "timestamp"
+status_header = "status"
+operation_type_header = "operation_type"
+operation_id_header = "operation_id"
+topic_header = "topic"
+scope_header = "scope"
+locked_stores_header = "locked_stores"
