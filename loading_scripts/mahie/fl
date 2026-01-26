@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+import re
+import sys
+
+if len(sys.argv) < 4:
+    print("Usage: filter_logs <input.log> <threshold_ms> <output.log> [--log]")
+    sys.exit(1)
+
+input_file = sys.argv[1]
+threshold = int(sys.argv[2])
+output_file = sys.argv[3]
+enable_log = len(sys.argv) >= 5 and sys.argv[4] == "--log"
+
+def log(msg):
+    if enable_log:
+        print(msg)
+
+# === Patterns ===
+dlc_start_re = re.compile(r"\[dlc, transaction\] Starting (LOAD|UNLOAD)", re.IGNORECASE)
+pivot_start_re = re.compile(r"ActivePivotTransactionStartedEvent", re.IGNORECASE)
+pivot_end_re = re.compile(r"ActivePivotTransactionCommittedEvent", re.IGNORECASE)
+pivot_any_re = re.compile(
+    r"(committed on cube dimensions|committed on aggregate providers|Hierarchy transaction times)",
+    re.IGNORECASE
+)
+datastore_commit_re = re.compile(r"event_type=DatastoreTransactionCommitted", re.IGNORECASE)
+
+# Remove ANSI codes if present
+ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+
+# === State ===
+in_transaction = False
+in_pivot_block = False
+dlc_start_line = None
+datastore_commit_line = None
+pivot_block = []
+valid_pivot_blocks = []
+
+def reset_state():
+    global in_transaction, in_pivot_block, dlc_start_line, datastore_commit_line, pivot_block, valid_pivot_blocks
+    in_transaction = False
+    in_pivot_block = False
+    dlc_start_line = None
+    datastore_commit_line = None
+    pivot_block = []
+    valid_pivot_blocks = []
+
+reset_state()
+
+with open(input_file, "r", errors="replace") as fin, open(output_file, "w") as out:
+    for raw_line in fin:
+        line = raw_line.rstrip("\n")
+        line_clean = ansi_escape.sub('', line)
+
+        # DLC start
+        if dlc_start_re.search(line_clean):
+            reset_state()
+            in_transaction = True
+            dlc_start_line = line + "\n"
+            log(f"[DEBUG] DLC start detected")
+            continue
+
+        if not in_transaction:
+            continue
+
+        # Pivot block start
+        if pivot_start_re.search(line_clean):
+            in_pivot_block = True
+            pivot_block = [line + "\n"]
+            log(f"[DEBUG] Pivot block started")
+            continue
+
+        # Pivot block lines inside block
+        if in_pivot_block and pivot_any_re.search(line_clean):
+            pivot_block.append(line + "\n")
+            continue
+
+        # Pivot block end
+        if pivot_end_re.search(line_clean) and in_pivot_block:
+            log(f"[DEBUG] pivot commit detected")
+            pivot_block.append(line + "\n")
+            # extract commit_duration
+            m = re.search(r"commit_duration=([0-9,]+)ms", line_clean)
+            if m:
+                dur = int(m.group(1).replace(",", ""))
+                if dur >= threshold:
+                    valid_pivot_blocks.append(list(pivot_block))
+                    log(f"[DEBUG] Pivot block passed threshold: {dur}ms")
+                else:
+                    log(f"[DEBUG] Pivot block below threshold: {dur}ms")
+            in_pivot_block = False
+            pivot_block = []
+            continue
+
+        # Datastore commit
+        if datastore_commit_re.search(line_clean):
+            datastore_commit_line = line + "\n"
+            log(f"[DEBUG] Datastore commit detected")
+            if valid_pivot_blocks and dlc_start_line:
+                out.write("\n==================== TRANSACTION ====================\n")
+                out.write(dlc_start_line)
+                for block in valid_pivot_blocks:
+                    for l in block:
+                        out.write(l)
+                out.write(datastore_commit_line)
+                out.write("=====================================================\n\n")
+                log(f"[DEBUG] Transaction written with {len(valid_pivot_blocks)} pivot block(s)")
+            else:
+                log(f"[DEBUG] Transaction dropped (no pivot block passed threshold)")
+            reset_state()
+            continue

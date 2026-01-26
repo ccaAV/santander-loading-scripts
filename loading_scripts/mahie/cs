@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+import re
+import argparse
+from statistics import mean
+from collections import defaultdict
+
+# ---------------- REGEX ----------------
+ANSI_ESCAPE = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
+
+COMMIT_PATTERN = re.compile(
+    r"Pivots\s*=\s*\[(.*?)\].*?"
+    r"total_duration=(\d+)ms,\s*"
+    r"transaction_duration=(\d+)ms,\s*"
+    r"commit_duration=(\d+)ms"
+)
+# --------------------------------------
+
+
+def strip_ansi(text: str) -> str:
+    return ANSI_ESCAPE.sub("", text)
+
+
+def parse_logs(log_file):
+    """
+    Returns:
+      pivot_data[pivot] = list of dicts:
+        {
+          "total_duration": int,
+          "transaction_duration": int,
+          "commit_duration": int
+        }
+    """
+    pivot_data = defaultdict(list)
+
+    with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            line = strip_ansi(line)
+
+            match = COMMIT_PATTERN.search(line)
+            if not match:
+                continue
+
+            pivots = [p.strip() for p in match.group(1).split(",")]
+            total_dur = int(match.group(2))
+            tx_dur = int(match.group(3))
+            commit_dur = int(match.group(4))
+
+            for pivot in pivots:
+                pivot_data[pivot].append(
+                    {
+                        "total_duration": total_dur,
+                        "transaction_duration": tx_dur,
+                        "commit_duration": commit_dur,
+                    }
+                )
+
+    return pivot_data
+
+
+def print_stats(values, label):
+    print(f"\n  {label}")
+    print(f"  {'-' * len(label)}")
+    print(f"  Count   : {len(values)}")
+    print(f"  Min     : {min(values)} ms")
+    print(f"  Max     : {max(values)} ms")
+    print(f"  Average : {int(mean(values))} ms")
+
+
+def print_top_k(entries, key, k):
+    top = sorted(entries, key=lambda x: x[key], reverse=True)[:k]
+    print(f"\n  Top {k} by {key}")
+    print(f"  {'-' * (10 + len(key))}")
+    for i, e in enumerate(top, 1):
+        print(f"  {i:>2}. {key}={e[key]}ms "
+              f"(total={e['total_duration']}ms)")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Analyze ActivePivot transaction durations grouped by Pivot",
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog="""
+Examples:
+  python pivot_tx_stats.py application.log
+  python pivot_tx_stats.py app.log --topk 10
+"""
+    )
+
+    parser.add_argument(
+        "logfile",
+        help="Path to the log file to analyze"
+    )
+
+    parser.add_argument(
+        "--topk",
+        type=int,
+        default=5,
+        help="Number of slowest transactions to display per pivot (default: 5)"
+    )
+
+    args = parser.parse_args()
+
+    pivot_data = parse_logs(args.logfile)
+
+    if not pivot_data:
+        print("No ActivePivot transaction events found.")
+        return
+
+    for pivot, entries in sorted(pivot_data.items()):
+        print(f"\nPivot: {pivot}")
+        print("=" * (7 + len(pivot)))
+
+        total_vals = [e["total_duration"] for e in entries]
+        tx_vals = [e["transaction_duration"] for e in entries]
+        commit_vals = [e["commit_duration"] for e in entries]
+
+        print_stats(total_vals, "Total Duration Stats")
+        print_stats(tx_vals, "Transaction Duration Stats")
+        print_stats(commit_vals, "Commit Duration Stats")
+
+        print_top_k(entries, "total_duration", args.topk)
+        print_top_k(entries, "commit_duration", args.topk)
+
+
+if __name__ == "__main__":
+    main()
+

@@ -3,9 +3,8 @@ import sys
 import argparse
 import csv
 from datetime import datetime
-import pandas as pd
 
-from loading_scripts.csv_config import timestamp_header, operation_type_header, status_header, operation_id_header, \
+from loading_scripts.old.csv_config import timestamp_header, operation_type_header, status_header, operation_id_header, \
     topic_header, scope_header, locked_stores_header
 
 INPUT_FILE = 'application.log'
@@ -37,6 +36,7 @@ scopes = []
 # Locked Stores (e.g., "Locking stores: [Scenarios]")
 re_stores = re.compile(r'Locking stores:\s+\[([^\]]*)\]')
 locked_stores = []
+
 
 def convert_date_to_timestamps(parsed_data):
     """Converts date strings to UNIX and ISO timestamps."""
@@ -71,21 +71,21 @@ def parse_line_for_dlc_operation(line):
     scopes.append(scope.group(1) if scope else None)
     locked_stores.append(stores.group(1) if stores else None)
 
+    parsed_line = {
+        timestamp_header: timestamp.group(1) if timestamp else None,
+        status_header: status_type.group(1) if status_type else None,
+        operation_type_header: operation_type.group(1) if operation_type else None,
+        operation_id_header: operation_id.group(1) if operation_id else None,
+        topic_header: topic.group(1) if topic else None,
+        scope_header: scope.group(1) if scope else None,
+        locked_stores_header: stores.group(1) if stores else None,
+    }
 
-    # parsed_line = {
-    #     timestamp_header: timestamp.group(1) if timestamp else None,
-    #     status_header: status_type.group(1) if status_type else None,
-    #     operation_type_header: operation_type.group(1) if operation_type else None,
-    #     operation_id_header: operation_id.group(1) if operation_id else None,
-    #     topic_header: topic.group(1) if topic else None,
-    #     scope_header: scope.group(1) if scope else None,
-    #     locked_stores_header: stores.group(1) if stores else None,
-    # }
-    #
-    # parsed_line = convert_date_to_timestamps(parsed_line)
-    # return parsed_line
+    parsed_line = convert_date_to_timestamps(parsed_line)
+    return parsed_line
 
 
+"""Extract DLC operations from log file and save to output file and CSV."""
 def extract_dlc_operations(input_file, output_file, log_pattern, csv_path):
     try:
         with open(input_file, 'r', encoding='utf-8') as infile, \

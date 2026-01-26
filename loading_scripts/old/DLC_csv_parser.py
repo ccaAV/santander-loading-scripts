@@ -5,6 +5,9 @@ import pandas as pd
 from csv_config import timestamp_header, operation_type_header, operation_id_header
 
 
+"""
+extract DLC operations timing from CSV files
+"""
 def extract_dlc_operations_info(input_file, output_file):
     df = pd.read_csv(input_file, encoding='utf-8', dtype=str)
     pivot_df = df.pivot_table(
