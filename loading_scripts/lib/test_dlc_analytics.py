@@ -62,9 +62,9 @@ class TestDlcAnalytics(unittest.TestCase):
         self.assertAlmostEqual(row[dlc.DLC_DURATION_MS], 9783.0, delta=5.0)
 
         # Transaction/commit accumulation parsed via AP tx 1 -> DB tx 3 mapping
-        self.assertEqual(row[dlc.TRANSACTION_ID], "3")
-        self.assertEqual(row[dlc.TRANSACTION_DURATION_MS], 635)  # 32 + 603
-        self.assertEqual(row[dlc.COMMIT_DURATION_MS], 629)       # 578 + 51
+        self.assertEqual(row[dlc.PIVOT_TRANSACTION_ID], "3")
+        self.assertEqual(row[dlc.AP_TRANSACTION_DURATION_MS], 635)
+        self.assertEqual(row[dlc.AP_COMMIT_DURATION_MS], 629)
 
     def test_extract_buffers_slow_ops_when_threshold_set(self):
         data = "\n".join(self.log_lines) + "\n"
@@ -102,9 +102,9 @@ class TestDlcAnalytics(unittest.TestCase):
                 dlc.OPERATION_TYPE: "LOAD",
                 dlc.START_TIME: "2026-01-01 00:00:00.000",
                 dlc.END_TIME:   "2026-01-01 00:00:10.000",
-                dlc.TRANSACTION_ID: "100",
-                dlc.TRANSACTION_DURATION_MS: 1000,
-                dlc.COMMIT_DURATION_MS: 100,
+                dlc.PIVOT_TRANSACTION_ID: "100",
+                dlc.AP_TRANSACTION_DURATION_MS: 1000,
+                dlc.AP_COMMIT_DURATION_MS: 100,
                 dlc.LOCKED_STORES: "A,B",
                 dlc.PIVOTS: {"X"},
                 dlc.DLC_DURATION_MS: 10000.0,
@@ -114,9 +114,9 @@ class TestDlcAnalytics(unittest.TestCase):
                 dlc.OPERATION_TYPE: "UNLOAD",
                 dlc.START_TIME: "2026-01-01 00:01:00.000",
                 dlc.END_TIME:   "2026-01-01 00:01:30.000",
-                dlc.TRANSACTION_ID: "200",
-                dlc.TRANSACTION_DURATION_MS: 2000,
-                dlc.COMMIT_DURATION_MS: 300,
+                dlc.PIVOT_TRANSACTION_ID: "200",
+                dlc.AP_TRANSACTION_DURATION_MS: 2000,
+                dlc.AP_COMMIT_DURATION_MS: 300,
                 dlc.LOCKED_STORES: "C",
                 dlc.PIVOTS: {"Y"},
                 dlc.DLC_DURATION_MS: 30000.0,
@@ -127,19 +127,19 @@ class TestDlcAnalytics(unittest.TestCase):
         self.assertIsInstance(stats, pd.DataFrame)
 
         metrics = set(stats["Metric"].tolist())
-        self.assertEqual(metrics, {"DCL operation", "Transaction", "Commit"})
+        self.assertEqual(metrics, {"DCL operation duration", "AP Transaction duration", "AP Commit duration"})
 
-        row_dlc = stats[stats["Metric"] == "DCL operation"].iloc[0]
+        row_dlc = stats[stats["Metric"] == "DCL operation duration"].iloc[0]
         self.assertEqual(row_dlc["Min (ms)"], 10000.0)
         self.assertEqual(row_dlc["Max (ms)"], 30000.0)
         self.assertAlmostEqual(row_dlc["Average (ms)"], 20000.0)
 
-        row_tx = stats[stats["Metric"] == "Transaction"].iloc[0]
+        row_tx = stats[stats["Metric"] == "AP Transaction duration"].iloc[0]
         self.assertEqual(row_tx["Min (ms)"], 1000)
         self.assertEqual(row_tx["Max (ms)"], 2000)
         self.assertAlmostEqual(row_tx["Average (ms)"], 1500.0)
 
-        row_commit = stats[stats["Metric"] == "Commit"].iloc[0]
+        row_commit = stats[stats["Metric"] == "AP Commit duration"].iloc[0]
         self.assertEqual(row_commit["Min (ms)"], 100)
         self.assertEqual(row_commit["Max (ms)"], 300)
         self.assertAlmostEqual(row_commit["Average (ms)"], 200.0)
@@ -155,9 +155,9 @@ class TestDlcAnalytics(unittest.TestCase):
                 dlc.OPERATION_TYPE: "LOAD",
                 dlc.START_TIME: "2026-01-01 00:00:00.000",
                 dlc.END_TIME:   "2026-01-01 00:00:05.000",  # 5s
-                dlc.TRANSACTION_ID: "100",
-                dlc.TRANSACTION_DURATION_MS: 1000,
-                dlc.COMMIT_DURATION_MS: 100,
+                dlc.PIVOT_TRANSACTION_ID: "100",
+                dlc.AP_TRANSACTION_DURATION_MS: 1000,
+                dlc.AP_COMMIT_DURATION_MS: 100,
                 dlc.LOCKED_STORES: "A",
                 dlc.PIVOTS: {"X"},
             },
@@ -166,9 +166,9 @@ class TestDlcAnalytics(unittest.TestCase):
                 dlc.OPERATION_TYPE: "LOAD",
                 dlc.START_TIME: "2026-01-01 00:01:00.000",
                 dlc.END_TIME:   "2026-01-01 00:01:20.000",  # 20s
-                dlc.TRANSACTION_ID: "200",
-                dlc.TRANSACTION_DURATION_MS: 3000,
-                dlc.COMMIT_DURATION_MS: 400,
+                dlc.PIVOT_TRANSACTION_ID: "200",
+                dlc.AP_TRANSACTION_DURATION_MS: 3000,
+                dlc.AP_COMMIT_DURATION_MS: 400,
                 dlc.LOCKED_STORES: "B",
                 dlc.PIVOTS: {"Y"},
             },
@@ -185,11 +185,11 @@ class TestDlcAnalytics(unittest.TestCase):
 
         tx_slowest = reports["slowest_transactions"]
         self.assertEqual(len(tx_slowest), 1)
-        self.assertEqual(tx_slowest.iloc[0][dlc.TRANSACTION_ID], "200")
+        self.assertEqual(tx_slowest.iloc[0][dlc.PIVOT_TRANSACTION_ID], "200")
 
         commit_slowest = reports["slowest_commits"]
         self.assertEqual(len(commit_slowest), 1)
-        self.assertEqual(commit_slowest.iloc[0][dlc.TRANSACTION_ID], "200")
+        self.assertEqual(commit_slowest.iloc[0][dlc.PIVOT_TRANSACTION_ID], "200")
 
     @patch("pandas.DataFrame.to_csv")
     def test_print_slowest_reports_to_csv(self, mock_to_csv):

@@ -15,8 +15,8 @@ class TestDLCRegex(unittest.TestCase):
         # Raw lines with ANSI escapes (as provided)
         cls.test_lines = {
             "start_line": "2026-01-29 13:41:39.106 CET [[34mmain[0;39m] [34mINFO [0;39m [33mc.a.i.d.i.DataLoadControllerService[0;39m - [dlc, transaction] Starting LOAD operation, operation_id=0, on topic [StaticTopic], with scope {}. Locking stores: [Scenarios]",
-            "transaction_started": "2026-01-29 13:41:39.108 CET [[34mactivepivot-health-event-dispatcher[0;39m] [34mINFO [0;39m [33mcom.activeviam.apm.health[0;39m - [datastore, transaction] INFO 2026-01-29T12:41:39.108Z uptime=74869ms com.activeviam.database.datastore.internal.transaction.impl.TransactionManager.emitObservabilityOnTransactionStarted:612 thread=main thread_id=1 event_type=DatastoreTransactionStarted Transaction Started  transaction_id=3 on_stores=[Scenarios]",
-            "commit_event": "2026-01-29 13:41:48.810 CET [[34mactivepivot-health-event-dispatcher[0;39m] [34mINFO [0;39m [33ma.s.tech.observability.health-event[0;39m - [activepivot, transaction] INFO 2026-01-29T12:41:48.809Z uptime=84570ms com.activeviam.activepivot.core.impl.private_.transaction.impl.ActivePivotSchemaTransaction$1.execute:284 thread=activeviam-common-pool-worker-48 thread_id=220 event_type=ActivePivotTransactionCommittedEvent user=NO_USER roles=[] ActivePivotSchema = VaR/ESSchema, Pivots = [VaR-ES Cube] ActivePivot transaction 1 was successfully committed on epoch 3. total_duration=654ms, transaction_duration=603ms, commit_duration=51ms",
+            "ds_transaction_commit": "2026-01-29 18:32:14.986 CET [[34mactivepivot-health-event-dispatcher[0;39m] [34mINFO [0;39m [33mcom.activeviam.apm.health[0;39m - [datastore, transaction] INFO 2026-01-29T17:32:14.985Z uptime=17510746ms com.activeviam.database.datastore.internal.transaction.impl.TransactionManager.emitObservabilityOnTransactionCommitted:650 thread=activeviam-DLCRequestExecutor-1 thread_id=834 event_type=DatastoreTransactionCommitted Transaction Committed  transaction_id=12 transaction_duration=29204ms commit_duration=28802ms",
+            "ap_commit_event": "2026-01-29 13:41:48.810 CET [[34mactivepivot-health-event-dispatcher[0;39m] [34mINFO [0;39m [33ma.s.tech.observability.health-event[0;39m - [activepivot, transaction] INFO 2026-01-29T12:41:48.809Z uptime=84570ms com.activeviam.activepivot.core.impl.private_.transaction.impl.ActivePivotSchemaTransaction$1.execute:284 thread=activeviam-common-pool-worker-48 thread_id=220 event_type=ActivePivotTransactionCommittedEvent user=NO_USER roles=[] ActivePivotSchema = VaR/ESSchema, Pivots = [VaR-ES Cube] ActivePivot transaction 1 was successfully committed on epoch 3. total_duration=654ms, transaction_duration=603ms, commit_duration=51ms",
             "finish_line": "2026-01-29 13:41:48.889 CET [[34mmain[0;39m] [34mINFO [0;39m [33mc.a.i.d.i.DataLoadControllerService[0;39m - [dlc, transaction] Finishing LOAD operation, id 0.",
             "thread_extractor": "2026-01-29 13:51:21.510 CET [[34mmain[0;39m] [34mINFO [0;39m [33mc.a.i.d.i.DataLoadControllerService[0;39m - [dlc, transaction] Starting LOAD operation, operation_id=2, on topic [All], with scope {AsOfDate=2026-01-23}. Locking stores: [GLCodeGroup, ForexMarketDataStore, UnitAreaCfg, Ger_CHILE_IMA, Ger_SHUSA, Ger_ALCO TOTAL, Ger_SLB NO IMA, Buckets_FRTB, BondsMarketDataStore, Product, Effects, Curves_FRTB, EQCorrelationLimit, MarketDataSets, Ger_CAPITAL ECONOMICO, PortfolioType, Ger_ARG-ESTRUCTURA GER, Ger_NY_HYP, Ger_BDE_25_BASE, Ger_FX ESTRUCTURAL VAR, Baskets, Bonds, Ger_SCMHYP, Ger_NYTOT, Seniority, DividendMarketDataStore, TradeSensitivities, PublicationCriteria, CargaMetricTrans, IrCurve, Ger_BDE_25_MULTI_5, Ger_BDE_25_MULTI_4, Counterparties, Ger_BDE_25_MULTI_3, VolatilityCubeMarketDataStore, Ger_Hypothetical Portfolio SLB, Ger_BDE_25_MULTI_2, RepoMarginMarketDataStore, PortfolioFlag, Ger_BDE_25_MULTI_1, Ger_SCIB BOA&SLB, CargaStructures, Ger_USABB, Ger_Hipoteticos, Ger_MADRI, RiskFactorsCatalogue, UndIrLatam, Ger_PT_NEGOCIACION, Ger_COBERTURAS TEMPORALES, Ger_SBNA_HYP, Ger_PERU TOTAL, Ger_GINEBRA, Ger_MIAMI, Ger_HONG KONG ALCO, RfAire, Portfolio, CcyPairs, VolatilitySurfaceMarketDataStore, Tenor, Ger_CHILE, VegaShifts, CreditMarketDataStore, Ger_HIPOTETICOS, DeltaShifts, Ger_ALCO TOTAL CG, IssuersGroup, Countries, PValueDelivery, Ger_POSICION EXPUESTA, CargaRiskConfig, CounterpartyParentChild, Ger_PT_ESTRUTURAL, SensiLadders, GammaShifts, Factor, Ger_DIVERSIFICACION, Scenarios, Ger_COBERTURAS PERMANENTES, Ger_Balance_Matriz_Completa, Mdr, LimitDelivery, IrCurveLatam, GerLevel, Ger_ADR, KDelivery, Proxies, Ger_SLB BANKING_BOOK, SpotsMarketDataStore, Ger_NYSIS, UndIr, MarketShifts, Ger_CIB BOADILLA, RiskGroup, CurvesMarketDataStore, Ger_SUSCM, TradeAttributes, FinalSector, Ger_POLAND, UnderlyingGroup, Maturities, UnderlyingEq, Ger_BRASIL, LegalEntityParentChild, CarryCriteria, Isin, Ger_HONG KONG TRADING, Mdr2, Issuers, Ger_SLB, Ger_SCIB BOA&SLB_CR, TradePnLs, CargaScImpact, Ger_SOVERE, BookParentChild, GerPnlMonthlyAnnualDelivery, TenorGroup, PnL, Ger_BDE_25_10000, Ger_MEXICO_MARS, Ccy]",
             "pivot_link":"2026-01-29 13:46:20.314 CET [[34mactivepivot-health-event-dispatcher[0;39m] [34mINFO [0;39m [33ma.s.tech.observability.health-event[0;39m - [activepivot, transaction] INFO 2026-01-29T12:46:20.314Z uptime=356075ms com.activeviam.activepivot.core.impl.private_.transaction.impl.ActivePivotSchemaTransactionManager.startTransactionOrBlock:238 thread=main thread_id=1 event_type=ActivePivotTransactionStartedEvent user=NO_USER roles=[] ActivePivotSchema = PnlSchema, Pivots = [PLCube] ActivePivot transaction 1 started, fired by database transaction 4",
@@ -82,16 +82,34 @@ class TestDLCRegex(unittest.TestCase):
                     self.assertIsNone(m, f"DLC_FINISH_EVENT should not match {name}")
 
     # ----------------------
-    # TRANSACTION_START
+    # DATASTORE TRANSACTION_START
     # ----------------------
-    def test_transaction_start(self):
+    def test_ds_transaction_commit(self):
         for name, line in self.test_lines.items():
             with self.subTest(line=name):
                 clean_line = clean(line)
-                m = dlc.TRANSACTION_START.search(clean_line)
-                if name == "transaction_started":
-                    self.assertIsNotNone(m, "TRANSACTION_START should match transaction_started")
-                    self.assertEqual(m.group('tx_id'), "3")
+                m = dlc.DS_TRANSACTION_COMMIT.search(clean_line)
+                if name == "ds_transaction_commit":
+                    self.assertIsNotNone(m, "TRANSACTION_START should match ds_transaction_commit")
+                    self.assertEqual(m.group('ds_tx_id'), "12")
+                    self.assertEqual(m.group('ds_tx_dur'), "29204")
+                    self.assertEqual(m.group('ds_commit_dur'), "28802")
+                else:
+                    self.assertIsNone(m, f"TRANSACTION_START should not match {name}")
+
+    # ----------------------
+    # DATABASE TRANSACTION_START
+    # ----------------------
+    def test_ap_transaction_commit(self):
+        for name, line in self.test_lines.items():
+            with self.subTest(line=name):
+                clean_line = clean(line)
+                m = dlc.AP_COMMIT_EVENT.search(clean_line)
+                if name == "ap_commit_event":
+                    self.assertIsNotNone(m, "TRANSACTION_START should match ap_commit_event")
+                    self.assertEqual(m.group('ap_tx_id'), "1")
+                    self.assertEqual(m.group('ap_tx_dur'), "603")
+                    self.assertEqual(m.group('ap_commit_dur'), "51")
                 else:
                     self.assertIsNone(m, f"TRANSACTION_START should not match {name}")
 
@@ -113,13 +131,13 @@ class TestDLCRegex(unittest.TestCase):
     # ----------------------
     # COMMIT_EVENT
     # ----------------------
-    def test_commit_event(self):
+    def test_ap_commit_event(self):
         for name, line in self.test_lines.items():
             with self.subTest(line=name):
                 clean_line = clean(line)
-                m = dlc.COMMIT_EVENT.search(clean_line)
-                if name == "commit_event":
-                    self.assertIsNotNone(m, "COMMIT_EVENT should match commit_event")
+                m = dlc.AP_COMMIT_EVENT.search(clean_line)
+                if name == "ap_commit_event":
+                    self.assertIsNotNone(m, "COMMIT_EVENT should match ap_commit_event")
                     self.assertEqual(m.group('pivots'), "VaR-ES Cube")
                     self.assertEqual(m.group('ap_tx'), "1")
                     self.assertEqual(m.group('tx_dur'), "603")

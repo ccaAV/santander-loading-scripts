@@ -1,5 +1,5 @@
 # Input/Output settings
-input_file: "../load_unload.log"
+input: "input_files/nohup.out"
 output_log: "operations_above_threshold.csv"
 csv_output: "dlc_stats.csv"
 
@@ -7,7 +7,13 @@ csv_output: "dlc_stats.csv"
 threshold: 5000
 top_n: 10
 
+
+# Time parsing
+time_format: "%Y-%m-%d %H:%M:%S.%f"
+
+
 # Time Window (Optional)
 # If these are null, the script processes the whole file
-start_time: "2025-12-05 13:00:00,000"
-end_time: "2025-12-05 14:00:00,000"
+start_time: "2026-01-29 13:40:27.000"
+end_time: "2026-01-29 19:01:35.000"
+keep_reduced: true

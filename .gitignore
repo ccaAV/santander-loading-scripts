@@ -1,3 +1,6 @@
 /loading_scripts/input_data/
 /loading_scripts/mahie/
 /loading_scripts/old/
+*.out
+*.log
+*.csv
