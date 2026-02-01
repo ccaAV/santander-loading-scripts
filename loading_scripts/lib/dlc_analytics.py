@@ -5,7 +5,7 @@ import re
 A library for parsing DLC log and establish statistics
 """
 
-ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+ANSI_ESCAPE = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
 
 # Extracts thread name from prefix: timestamp CET [thread]
 # Strips whitespace to handle variations like "[ activeviam...]"
@@ -31,7 +31,7 @@ COMMIT_EVENT = re.compile(
 
 DLC_FINISH_EVENT = re.compile(r"Finishing (?:LOAD|UNLOAD) operation, id (?P<id>\d+)\.?")
 
-# Add this near your other regexes
+# used to link the ActivePivot transaction to the database transaction
 PIVOT_LINK_EVENT = re.compile(
     r"ActivePivot transaction (?P<ap_tx>\d+) started, fired by database transaction (?P<db_tx>\d+)"
 )
@@ -55,29 +55,44 @@ DLC_DURATION_MS = 'dlc_duration_ms'
 def extract_dlc_operations_from_file(input_file, threshold_ms=None, output_log_path=None):
 
     # set up data structures to keep dlc operation data and map dlc operations to db and pivot transactions
+
+    # Keeps the current DLC operation state per thread
     dlc_op_data = {}
+
+    # keeps the mapping from db transaction to dlc operation
     db_transaction_to_dlc_op = {}
+
+    # keeps the mapping from pivot transaction to dlc operation
     pivot_transaction_to_dlc_op = {}
+
+    # List of completed DLC operations
     completed_ops = []
 
     last_started_dlc = None
+
+    # if we want to buffer lines for slow operations
     should_buffer = threshold_ms is not None and output_log_path is not None
 
     print(f"[*] Opening {input_file}...")
     with open(input_file, 'r', encoding="utf-8", errors="ignore") as inf:
+        print("[*] Processing log file...")
         outf = open(output_log_path, 'w', encoding="utf-8") if should_buffer else None
         try:
             for raw_line in inf:
                 line = raw_line.rstrip('\n')
-                clean_line = ansi_escape.sub('', line)
+                clean_line = ANSI_ESCAPE.sub('', line)
+                print(f"looking at line: {clean_line}")
 
                 thread_match = THREAD_EXTRACTOR.match(clean_line)
+                print(F"thread match: {thread_match is not None}")
                 if not thread_match: continue
 
                 current_thread = thread_match.group(THREAD).strip()
                 # The line corresponds to the start of a DLC operation
                 if m := DLC_START_EVENT.search(clean_line):
-                    state = {
+
+                    # save the DLC operation information in the state
+                    dlc_operation_info = {
                         THREAD: current_thread,
                         OPERATION_ID: m.group('op_id'),
                         OPERATION_TYPE: m.group('type'),
@@ -90,10 +105,10 @@ def extract_dlc_operations_from_file(input_file, threshold_ms=None, output_log_p
                         TRANSACTION_DURATION_MS: 0,
                         COMMIT_DURATION_MS: 0,
                     }
-                    dlc_op_data[current_thread] = state
-                    last_started_dlc = state  # Important: used for the next Transaction Start
+                    dlc_op_data[current_thread] = dlc_operation_info
+                    last_started_dlc = dlc_operation_info  # Important: used for the next Transaction Start
                     if should_buffer:
-                        state['buffered_lines'] = [raw_line + "\n"]
+                        dlc_operation_info['buffered_lines'] = [raw_line + "\n"]
                     continue
 
                 # 1. Buffer lines if within a DLC operation and buffering is enabled
@@ -161,6 +176,9 @@ def extract_dlc_operations_from_file(input_file, threshold_ms=None, output_log_p
                         completed_ops.append(op)  # This was missing
 
                     continue
+
+        except Exception as e:
+            print(f"[!] Error processing log file: {e}")
         finally:
             if outf:
                 outf.close()
@@ -198,6 +216,13 @@ def compute_dlc_stats(dlc_df):
 
 
 def get_n_slowest_operations(dlc_df, n=5):
+
+    #copy the input data frame
+    dlc_df = dlc_df.copy()
+
+    dlc_df[START_TIME] = pd.to_datetime(dlc_df[START_TIME])
+    dlc_df[END_TIME] = pd.to_datetime(dlc_df[END_TIME])
+
     dlc_df[DLC_DURATION_MS] = (dlc_df[END_TIME] - dlc_df[START_TIME]).dt.total_seconds() * 1000
     slowest_dlc = dlc_df.nlargest(n, DLC_DURATION_MS)[[OPERATION_ID, OPERATION_TYPE, DLC_DURATION_MS, TRANSACTION_ID]]
     exploded_df = dlc_df.explode(PIVOTS)
